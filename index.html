@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#4f46e5">
+<meta name="description" content="Tarefas domésticas e lista de compras compartilhadas em tempo real">
+<title>Casa em Dia</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  *{box-sizing:border-box;}
+  :root{
+    --bg:#f5f7fb; --card:#fff; --text:#1e2333; --muted:#6b7280; --line:#e6e9f2;
+    --brand:#4f46e5; --brand-2:#6366f1; --ok:#10b981; --danger:#ef4444; --warn:#f59e0b;
+    --radius:16px; --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  }
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .container{max-width:1040px;margin:0 auto;padding:0 16px;}
+  header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .logo{font-size:1.6rem;line-height:1;}
+  .brand h1{margin:0;font-size:1.15rem;letter-spacing:-.02em;}
+  .sub{margin:2px 0 0;font-size:.76rem;color:var(--muted);}
+  .bar-actions{display:flex;gap:8px;align-items:center;}
+  .conn-badge{font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;}
+  .conn-badge.online{background:#d1fae5;color:#065f46;}
+  .conn-badge.offline{background:#fee2e2;color:#991b1b;}
+  .tabs{display:flex;gap:4px;}
+  .tab{border:none;background:transparent;font:inherit;font-weight:700;color:var(--muted);padding:10px 14px;border-radius:12px 12px 0 0;cursor:pointer;display:inline-flex;align-items:center;gap:8px;border-bottom:3px solid transparent;transition:.15s;}
+  .tab:hover{color:var(--text);background:#f8fafc;}
+  .tab.active{color:var(--brand);border-bottom-color:var(--brand);}
+  .badge{background:#eef1f7;color:#475069;font-size:.72rem;font-weight:800;padding:2px 8px;border-radius:999px;}
+  .tab.active .badge{background:#e8e7ff;color:var(--brand);}
+  main{padding:20px 16px 60px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:16px;}
+  .btn{border:1px solid transparent;border-radius:10px;padding:9px 14px;font:inherit;font-weight:600;font-size:.88rem;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px;}
+  .btn.primary{background:var(--brand);color:#fff;}
+  .btn.primary:hover{background:#4338ca;}
+  .btn.ghost{background:#fff;border-color:var(--line);color:var(--text);}
+  .btn.ghost:hover{background:#f8fafc;}
+  .btn.small{padding:6px 10px;font-size:.78rem;}
+  .btn.danger{color:var(--danger);}
+  .btn.install{background:var(--ok);color:#fff;font-weight:700;}
+  input,select,textarea{width:100%;font:inherit;font-size:.9rem;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);outline:none;transition:.15s;}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+  textarea{resize:vertical;}
+  label{display:block;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .form .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;}
+  .form .full{grid-column:1/-1;}
+  .form-actions{display:flex;gap:8px;margin-top:14px;}
+  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
+  .progress-card{padding:14px 16px;}
+  .progress-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .progress-head strong{font-size:.88rem;}
+  .bar-track{height:8px;background:#eef1f7;border-radius:999px;overflow:hidden;}
+  .bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-radius:999px;transition:width .3s;}
+  .item{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;transition:.15s;}
+  .item:hover{border-color:#d6dae8;}
+  .item.done{opacity:.62;background:#fafbfd;}
+  .item.done .item-title{text-decoration:line-through;}
+  .check{flex:0 0 auto;width:24px;height:24px;border-radius:8px;border:2px solid #cbd2e0;background:#fff;cursor:pointer;display:grid;place-items:center;color:#fff;font-size:13px;line-height:1;padding:0;margin-top:2px;transition:.15s;}
+  .check:hover{border-color:var(--brand);}
+  .check.on{background:var(--ok);border-color:var(--ok);}
+  .item-body{flex:1;min-width:0;}
+  .item-title{font-weight:600;font-size:.94rem;word-break:break-word;}
+  .item-desc{margin:6px 0 0;font-size:.84rem;color:var(--muted);line-height:1.45;word-break:break-word;}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:999px;background:#eef1f7;color:#475069;}
+  .chip.late{background:#fee2e2;color:#b91c1c;}
+  .item-actions{display:flex;gap:2px;flex:0 0 auto;}
+  .icon-btn{border:none;background:transparent;cursor:pointer;font-size:.95rem;padding:6px;border-radius:8px;color:var(--muted);line-height:1;transition:.15s;}
+  .icon-btn:hover{background:#f1f4fa;color:var(--text);}
+  .group-head{display:flex;align-items:center;justify-content:space-between;margin:20px 4px 8px;font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+  .group-head:first-child{margin-top:0;}
+  .empty{text-align:center;padding:36px 16px;color:var(--muted);font-size:.9rem;line-height:1.6;}
+  .empty .big{font-size:2rem;display:block;margin-bottom:8px;}
+  footer{text-align:center;font-size:.76rem;color:var(--muted);padding:0 16px 40px;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e2333;color:#fff;padding:10px 20px;border-radius:12px;font-size:.84rem;font-weight:600;opacity:0;transition:opacity .3s;z-index:100;pointer-events:none;}
+  .toast.show{opacity:1;}
+  @media (max-width:560px){
+    .bar-actions .btn span{display:none;}
+    .tab{padding:10px 10px;font-size:.86rem;}
+    .brand h1{font-size:1rem;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container bar">
+    <div class="brand">
+      <span class="logo">🏠</span>
+      <div>
+        <h1>Casa em Dia</h1>
+        <p class="sub">Tarefas compartilhadas e lista de compras</p>
+      </div>
+    </div>
+    <div class="bar-actions">
+      <span class="conn-badge offline" id="connBadge">● Offline</span>
+      <button class="btn install small" id="btnInstall" hidden>📲 Instalar</button>
+      <button class="btn ghost small" id="btnExport" title="Baixar os dados em JSON">⬇️ <span>Exportar</span></button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </div>
+  </div>
+  <div class="container">
+    <nav class="tabs">
+      <button class="tab active" data-view="tasks">🧹 Tarefas <span class="badge" id="badgeTasks">0</span></button>
+      <button class="tab" data-view="shopping">🛒 Compras <span class="badge" id="badgeShop">0</span></button>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+  <section id="view-tasks">
+    <form class="card form" id="taskForm" autocomplete="off">
+      <div class="grid">
+        <div class="full">
+          <label for="tTitle">Tarefa</label>
+          <input id="tTitle" required maxlength="90" placeholder="Ex.: Lavar a louça do jantar">
+        </div>
+        <div><label for="tCat">Categoria</label><select id="tCat"></select></div>
+        <div><label for="tWho">Responsável</label><input id="tWho" list="peopleList" maxlength="30" placeholder="Ex.: Ana"><datalist id="peopleList"></datalist></div>
+        <div><label for="tPrio">Prioridade</label>
+          <select id="tPrio"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option></select>
+        </div>
+        <div><label for="tDue">Prazo</label><input type="date" id="tDue"></div>
+        <div class="full"><label for="tDesc">Descrição</label><textarea id="tDesc" rows="2" maxlength="300" placeholder="Detalhes, observações..."></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" type="submit" id="tSubmit">Adicionar tarefa</button>
+        <button class="btn ghost" type="button" id="tCancel" hidden>Cancelar edição</button>
+      </div>
+    </form>
+
+    <div class="card progress-card">
+      <div class="progress-head">
+        <strong id="taskProgressText">0 de 0 concluídas</strong>
+        <button class="btn ghost small danger" id="btnClearDone" type="button">Limpar concluídas</button>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="taskBar"></div></div>
+    </div>
+
+    <div class="filters">
+      <input id="fSearch" placeholder="🔍 Buscar tarefa...">
+      <select id="fCat"><option value="">Todas as categorias</option></select>
+      <select id="fWho"><option value="">Todos os responsáveis</option></select>
+      <select id="fStatus"><option value="">Todas</option><option value="pending">Pendentes</option><option value="done">Concluídas</option></select>
+    </div>
+
+    <div id="taskList"></div>
+  </section>
+
+  <section id="view-shopping" hidden>
+    <form class="card form" id="itemForm" autocomplete="off">
+      <div class="grid">
+        <div class="full"><label for="iName">Item</label><input id="iName" required maxlength="90" placeholder="Ex.: Arroz integral"></div>
+        <div><label for="iCat">Categoria</label><select id="iCat"></select></div>
+        <div><label for="iQty">Quantidade</label><input id="iQty" maxlength="20" placeholder="Ex.: 2 kg"></div>
+        <div><label for="iPrice">Preço estimado (R$)</label><input id="iPrice" type="number" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="full"><label for="iDesc">Descrição / observação</label><textarea id="iDesc" rows="2" maxlength="300" placeholder="Marca preferida, onde encontrar..."></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" type="submit" id="iSubmit">Adicionar item</button>
+        <button class="btn ghost" type="button" id="iCancel" hidden>Cancelar edição</button>
+      </div>
+    </form>
+
+    <div class="card progress-card">
+      <div class="progress-head">
+        <strong id="shopProgressText">0 de 0 comprados</strong>
+        <span class="chip" id="shopTotal">Total estimado: R$ 0,00</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="shopBar"></div></div>
+      <div style="margin-top:12px;"><button class="btn ghost small danger" id="btnClearBought" type="button">Limpar comprados</button></div>
+    </div>
+
+    <div class="filters">
+      <input id="sSearch" placeholder="🔍 Buscar item...">
+      <select id="sCat"><option value="">Todas as categorias</option></select>
+      <select id="sStatus"><option value="">Todos</option><option value="pending">A comprar</option><option value="done">Comprados</option></select>
+    </div>
+
+    <div id="shopList"></div>
+  </section>
+
+</main>
+
+<footer>
+  Dados sincronizados em tempo real via Firebase. Funciona offline e instalável no celular.
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+
+<script>
+/* =========================================================
+   ⚠️ SUBSTITUA ESTE BLOCO COM AS SUAS CREDENCIAIS DO FIREBASE
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCOFO6OxMNrJPR475hAWGHK4BKQTF6mL4I",
+  authDomain: "diaadia-b0001.firebaseapp.com",
+  databaseURL: "https://diaadia-b0001-default-rtdb.firebaseio.com",
+  projectId: "diaadia-b0001",
+  storageBucket: "diaadia-b0001.firebasestorage.app",
+  messagingSenderId: "601325776833",
+  appId: "1:601325776833:web:071623164bebc04d804940"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const tasksRef = db.ref('casa/tasks');
+const itemsRef = db.ref('casa/items');
+
+const TASK_CATS = ['Limpeza','Cozinha','Lavanderia','Organização','Manutenção','Compras','Outros'];
+const SHOP_CATS = ['Hortifrúti','Carnes e peixes','Laticínios','Padaria','Mercearia','Congelados','Bebidas','Limpeza','Higiene','Outros'];
+const PRIOS = { alta:{label:'Alta',color:'#ef4444'}, media:{label:'Média',color:'#f59e0b'}, baixa:{label:'Baixa',color:'#10b981'} };
+const PRIO_ORDER = { alta:0, media:1, baixa:2 };
+const PALETTE = ['#4f46e5','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1'];
+
+let tasks = [];
+let items = [];
+let editingTask = null;
+let editingItem = null;
+const filters = { task: { q:'', cat:'', who:'', status:'' }, shop: { q:'', cat:'', status:'' } };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+function catColor(name, arr){ const i = arr.indexOf(name); return PALETTE[(i < 0 ? arr.length : i) % PALETTE.length]; }
+function todayISO(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDue(iso){ const [y,m,d] = iso.split('-'); return `${d}/${m}`; }
+function fmtMoney(n){ return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fillSelect(sel, arr, ph){ sel.innerHTML = (ph?`<option value="">${esc(ph)}</option>`:'') + arr.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join(''); }
+function allPeople(){ return [...new Set(tasks.map(t=>t.assignee).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')); }
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._timer); t._timer = setTimeout(()=>t.classList.remove('show'), 2500); }
+
+function taskMatches(t){
+  const q = filters.task.q.trim().toLowerCase();
+  if (q && !((t.title+' '+(t.desc||'')).toLowerCase().includes(q))) return false;
+  if (filters.task.cat && t.category !== filters.task.cat) return false;
+  if (filters.task.who && t.assignee !== filters.task.who) return false;
+  if (filters.task.status === 'pending' && t.done) return false;
+  if (filters.task.status === 'done' && !t.done) return false;
+  return true;
+}
+function sortTasks(a,b){
+  if (a.done !== b.done) return a.done ? 1 : -1;
+  const pa = PRIO_ORDER[a.priority] ?? 1, pb = PRIO_ORDER[b.priority] ?? 1;
+  if (pa !== pb) return pa - pb;
+  if (a.due && b.due) return a.due.localeCompare(b.due);
+  if (a.due) return -1; if (b.due) return 1;
+  return (b.createdAt||0) - (a.createdAt||0);
+}
+function taskHTML(t){
+  const isLate = !t.done && t.due && t.due < todayISO();
+  const prio = PRIOS[t.priority] || PRIOS.media;
+  const color = catColor(t.category, TASK_CATS);
+  return `
+  <div class="item ${t.done?'done':''}" data-id="${t.id}">
+    <button class="check ${t.done?'on':''}" data-act="toggle" title="${t.done?'Marcar como pendente':'Concluir'}">${t.done?'✓':''}</button>
+    <div class="item-body">
+      <div class="item-title">${esc(t.title)}</div>
+      <div class="meta">
+        <span class="chip" style="background:${color}1a;color:${color}">${esc(t.category)}</span>
+        ${t.assignee?`<span class="chip">👤 ${esc(t.assignee)}</span>`:''}
+        <span class="chip" style="background:${prio.color}1a;color:${prio.color}">${prio.label}</span>
+        ${t.due?`<span class="chip ${isLate?'late':''}">📅 ${fmtDue(t.due)}${isLate?' · atrasada':''}</span>`:''}
+      </div>
+      ${t.desc?`<p class="item-desc">${esc(t.desc)}</p>`:''}
+    </div>
+    <div class="item-actions">
+      <button class="icon-btn" data-act="edit" title="Editar">✏️</button>
+      <button class="icon-btn" data-act="del" title="Excluir">🗑️</button>
+    </div>
+  </div>`;
+}
+function renderTasks(){
+  const list = $('taskList');
+  const visible = tasks.filter(taskMatches).sort(sortTasks);
+  list.innerHTML = visible.length ? visible.map(taskHTML).join('') : `<div class="empty"><span class="big">🧹</span>Nenhuma tarefa por aqui.<br>Adicione uma acima para começar.</div>`;
+  const total = tasks.length, done = tasks.filter(t=>t.done).length;
+  $('taskProgressText').textContent = `${done} de ${total} concluída${total===1?'':'s'}`;
+  $('taskBar').style.width = total ? `${(done/total)*100}%` : '0%';
+}
+function itemMatches(it){
+  const q = filters.shop.q.trim().toLowerCase();
+  if (q && !((it.name+' '+(it.desc||'')).toLowerCase().includes(q))) return false;
+  if (filters.shop.cat && it.category !== filters.shop.cat) return false;
+  if (filters.shop.status === 'pending' && it.bought) return false;
+  if (filters.shop.status === 'done' && !it.bought) return false;
+  return true;
+}
+function itemHTML(it){
+  const color = catColor(it.category, SHOP_CATS);
+  return `
+  <div class="item ${it.bought?'done':''}" data-id="${it.id}">
+    <button class="check ${it.bought?'on':''}" data-act="toggle" title="${it.bought?'Marcar como a comprar':'Marcar comprado'}">${it.bought?'✓':''}</button>
+    <div class="item-body">
+      <div class="item-title">${esc(it.name)}</div>
+      <div class="meta">
+        <span class="chip" style="background:${color}1a;color:${color}">${esc(it.category)}</span>
+        ${it.qty?`<span class="chip">📦 ${esc(it.qty)}</span>`:''}
+        ${it.price?`<span class="chip">💰 R$ ${fmtMoney(it.price)}</span>`:''}
+      </div>
+      ${it.desc?`<p class="item-desc">${esc(it.desc)}</p>`:''}
+    </div>
+    <div class="item-actions">
+      <button class="icon-btn" data-act="edit" title="Editar">✏️</button>
+      <button class="icon-btn" data-act="del" title="Excluir">🗑️</button>
+    </div>
+  </div>`;
+}
+function renderShopping(){
+  const list = $('shopList');
+  const visible = items.filter(itemMatches);
+  if (!visible.length){
+    list.innerHTML = `<div class="empty"><span class="big">🛒</span>Nenhum item na lista.<br>Adicione o primeiro acima.</div>`;
+  } else {
+    const groups = new Map();
+    visible.forEach(it => { if(!groups.has(it.category)) groups.set(it.category,[]); groups.get(it.category).push(it); });
+    const cats = [...groups.keys()].sort((a,b)=>{ const ia = SHOP_CATS.indexOf(a), ib = SHOP_CATS.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+    list.innerHTML = cats.map(cat=>{
+      const arr = groups.get(cat).sort((a,b)=>{ if (a.bought !== b.bought) return a.bought?1:-1; return a.name.localeCompare(b.name,'pt-BR'); });
+      const done = arr.filter(i=>i.bought).length;
+      return `<div class="group-head"><span>${esc(cat)}</span><span>${done}/${arr.length}</span></div>${arr.map(itemHTML).join('')}`;
+    }).join('');
+  }
+  const total = items.length, bought = items.filter(i=>i.bought).length;
+  const estimate = items.filter(i=>!i.bought).reduce((s,i)=>s+(Number(i.price)||0),0);
+  $('shopProgressText').textContent = `${bought} de ${total} comprado${total===1?'':'s'}`;
+  $('shopBar').style.width = total ? `${(bought/total)*100}%` : '0%';
+  $('shopTotal').textContent = `Total estimado: R$ ${fmtMoney(estimate)}`;
+}
+function renderTaskFilterOptions(){
+  const who = allPeople();
+  const cur = $('fWho').value;
+  $('fWho').innerHTML = `<option value="">Todos os responsáveis</option>` + who.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  $('fWho').value = who.includes(cur) ? cur : '';
+  $('peopleList').innerHTML = who.map(p=>`<option value="${esc(p)}">`).join('');
+}
+function render(){
+  renderTaskFilterOptions();
+  renderTasks();
+  renderShopping();
+  $('badgeTasks').textContent = tasks.filter(t=>!t.done).length;
+  $('badgeShop').textContent = items.filter(i=>!i.bought).length;
+}
+
+tasksRef.on('value', snap => { const val = snap.val(); tasks = val ? Object.values(val) : []; render(); });
+itemsRef.on('value', snap => { const val = snap.val(); items = val ? Object.values(val) : []; render(); });
+db.ref('.info/connected').on('value', snap => {
+  const badge = $('connBadge');
+  if (snap.val() === true){ badge.textContent = '● Online'; badge.className = 'conn-badge online'; }
+  else { badge.textContent = '● Offline'; badge.className = 'conn-badge offline'; }
+});
+
+function resetTaskForm(){
+  editingTask = null;
+  $('taskForm').reset();
+  $('tCat').selectedIndex = 0;
+  $('tPrio').value = 'media';
+  $('tSubmit').textContent = 'Adicionar tarefa';
+  $('tCancel').hidden = true;
+}
+$('taskForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = { title: $('tTitle').value.trim(), desc: $('tDesc').value.trim(), category: $('tCat').value, assignee: $('tWho').value.trim(), priority: $('tPrio').value, due: $('tDue').value };
+  if (!data.title) return;
+  if (editingTask){ tasksRef.child(editingTask).update(data); toast('Tarefa atualizada'); }
+  else { const id = uid(); tasksRef.child(id).set({ ...data, id, done:false, createdAt: Date.now() }); toast('Tarefa adicionada'); }
+  resetTaskForm();
+});
+$('tCancel').addEventListener('click', resetTaskForm);
+$('taskList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const id = btn.closest('[data-id]').dataset.id;
+  const act = btn.dataset.act;
+  const t = tasks.find(x=>x.id===id); if (!t) return;
+  if (act === 'toggle'){ tasksRef.child(id).update({ done: !t.done }); }
+  else if (act === 'edit'){
+    editingTask = id;
+    $('tTitle').value = t.title; $('tDesc').value = t.desc||''; $('tCat').value = t.category;
+    $('tWho').value = t.assignee||''; $('tPrio').value = t.priority||'media'; $('tDue').value = t.due||'';
+    $('tSubmit').textContent = 'Salvar alterações'; $('tCancel').hidden = false;
+    $('taskForm').scrollIntoView({behavior:'smooth',block:'center'}); $('tTitle').focus();
+  } else if (act === 'del'){
+    if (confirm(`Excluir a tarefa "${t.title}"?`)){ tasksRef.child(id).remove(); if (editingTask===id) resetTaskForm(); toast('Tarefa excluída'); }
+  }
+});
+$('btnClearDone').addEventListener('click', () => {
+  const done = tasks.filter(t=>t.done); if (!done.length) return;
+  if (!confirm(`Remover ${done.length} tarefa${done.length===1?'':'s'} concluída${done.length===1?'':'s'}?`)) return;
+  const updates = {}; done.forEach(t => updates[t.id] = null); tasksRef.update(updates); toast('Tarefas concluídas removidas');
+});
+
+function resetItemForm(){
+  editingItem = null;
+  $('itemForm').reset();
+  $('iCat').selectedIndex = 0;
+  $('iSubmit').textContent = 'Adicionar item';
+  $('iCancel').hidden = true;
+}
+$('itemForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const priceRaw = $('iPrice').value;
+  const data = { name: $('iName').value.trim(), desc: $('iDesc').value.trim(), category: $('iCat').value, qty: $('iQty').value.trim(), price: priceRaw===''?null:Number(priceRaw) };
+  if (!data.name) return;
+  if (editingItem){ itemsRef.child(editingItem).update(data); toast('Item atualizado'); }
+  else { const id = uid(); itemsRef.child(id).set({ ...data, id, bought:false, createdAt: Date.now() }); toast('Item adicionado'); }
+  resetItemForm();
+});
+$('iCancel').addEventListener('click', resetItemForm);
+$('shopList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const id = btn.closest('[data-id]').dataset.id;
+  const act = btn.dataset.act;
+  const it = items.find(x=>x.id===id); if (!it) return;
+  if (act === 'toggle'){ itemsRef.child(id).update({ bought: !it.bought }); }
+  else if (act === 'edit'){
+    editingItem = id;
+    $('iName').value = it.name; $('iDesc').value = it.desc||''; $('iCat').value = it.category;
+    $('iQty').value = it.qty||''; $('iPrice').value = it.price??'';
+    $('iSubmit').textContent = 'Salvar alterações'; $('iCancel').hidden = false;
+    $('itemForm').scrollIntoView({behavior:'smooth',block:'center'}); $('iName').focus();
+  } else if (act === 'del'){
+    if (confirm(`Excluir "${it.name}" da lista?`)){ itemsRef.child(id).remove(); if (editingItem===id) resetItemForm(); toast('Item excluído'); }
+  }
+});
+$('btnClearBought').addEventListener('click', () => {
+  const bought = items.filter(i=>i.bought); if (!bought.length) return;
+  if (!confirm(`Remover ${bought.length} item${bought.length===1?'':'s'} já comprado${bought.length===1?'':'s'}?`)) return;
+  const updates = {}; bought.forEach(i => updates[i.id] = null); itemsRef.update(updates); toast('Itens comprados removidos');
+});
+
+$('fSearch').addEventListener('input', e => { filters.task.q = e.target.value; renderTasks(); });
+$('fCat').addEventListener('change', e => { filters.task.cat = e.target.value; renderTasks(); });
+$('fWho').addEventListener('change', e => { filters.task.who = e.target.value; renderTasks(); });
+$('fStatus').addEventListener('change', e => { filters.task.status = e.target.value; renderTasks(); });
+$('sSearch').addEventListener('input', e => { filters.shop.q = e.target.value; renderShopping(); });
+$('sCat').addEventListener('change', e => { filters.shop.cat = e.target.value; renderShopping(); });
+$('sStatus').addEventListener('change', e => { filters.shop.status = e.target.value; renderShopping(); });
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const view = tab.dataset.view;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+    $('view-tasks').hidden = view !== 'tasks';
+    $('view-shopping').hidden = view !== 'shopping';
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+});
+
+$('btnExport').addEventListener('click', () => {
+  const data = { tasks, items, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `casa-em-dia-${todayISO()}.json`; a.click();
+  URL.revokeObjectURL(url);
+});
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('btnInstall').hidden = false; });
+$('btnInstall').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') toast('App instalado! 🎉');
+  deferredPrompt = null; $('btnInstall').hidden = true;
+});
+window.addEventListener('appinstalled', () => { $('btnInstall').hidden = true; toast('App instalado com sucesso!'); });
+
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => console.log('SW registrado:', reg.scope)).catch(err => console.warn('Falha ao registrar SW:', err));
+  });
+}
+
+fillSelect($('tCat'), TASK_CATS);
+fillSelect($('iCat'), SHOP_CATS);
+fillSelect($('fCat'), TASK_CATS, 'Todas as categorias');
+fillSelect($('sCat'), SHOP_CATS, 'Todas as categorias');
+render();
+</script>
+</body>
+</html>
